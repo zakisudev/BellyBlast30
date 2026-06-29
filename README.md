@@ -1,194 +1,194 @@
-# BellyBlast30
+# BellyBlast 30
 
-A 30-day belly blast workout mobile application built with React Native and Expo. This app provides guided fitness routines designed to target core muscles and help users achieve their fitness goals over a 30-day period.
+BellyBlast 30 is a premium 30-day protocol tracker built with Expo and React Native.
+It helps users complete daily fat-loss routine tasks, track hydration and body metrics, view trend analytics, and keep progress data exportable and recoverable.
 
-## Features
+## What Is New
 
-- **30-Day Workout Program**: Progressive workout plans designed to strengthen core muscles
-- **Cross-Platform Support**: Run on iOS, Android, and Web
-- **TypeScript**: Type-safe development with TypeScript
-- **Expo**: Fast development and easy deployment using Expo
+- Upgraded to Expo SDK 56 with React 19 and React Native 0.85.
+- Modernized all tab screens with adaptive light and dark styling.
+- Redesigned bottom navigation with a contrast-opposed theme treatment:
+  - Light bar in dark mode
+  - Dark bar in light mode
+  - Clear active and inactive icon contrast
+- Refined home, progress, calendar, analytics, and settings visual hierarchy.
+- Added richer settings cards for permissions, export, backup, and reset actions.
+- Metric-first body measurements:
+  - Weight in kg
+  - Waist in cm
+- Hydration controls and goals stored in ml with liters display formatting.
+- Strengthened persisted state migrations for evolving settings and hydration data.
 
-## Prerequisites
+## Core Features
 
-Before you begin, ensure you have the following installed on your system:
+- 30-day protocol checklist with six daily tasks
+- Daily progress and streak tracking
+- Hydration progress with quick-add and custom input
+- Measurements timeline and trend charts
+- Calendar-based completion review
+- Achievement system
+- Notification setup and timezone-aware resync
+- PDF summary export
+- CSV measurement export
+- JSON backup/share support
 
-- **Node.js** (v18 or higher) - [Download here](https://nodejs.org/)
-- **npm** or **yarn** - Comes with Node.js
-- **Expo CLI** (optional, but recommended) - Install globally with: `npm install -g expo-cli`
+## Tech Stack
 
-For **iOS development**:
-- macOS with Xcode installed (or Xcode Command Line Tools)
+- Expo SDK 56
+- React 19 + React Native 0.85
+- TypeScript strict mode
+- Expo Router
+- React Native Paper (Material 3)
+- Zustand with AsyncStorage persistence
+- React Hook Form + Zod
+- Reanimated + SVG chart rendering
+- Expo platform services:
+  - Notifications
+  - Image Picker
+  - File System
+  - Sharing
+  - Print
+  - Media Library
 
-For **Android development**:
-- Android Studio with Android SDK configured
+## Step-By-Step Setup Guide
 
-## Installation
+### 1. Prerequisites
 
-### Step 1: Clone the Repository
+Install these first:
+
+- Node.js 20+
+- npm 10+
+- Git
+- Expo tooling via npx (no global install required)
+- For native builds:
+  - Android Studio for Android
+  - Xcode for iOS on macOS
+
+### 2. Clone and Enter the Project
 
 ```bash
-git clone <repository-url>
+git clone <your-repo-url>
 cd BellyBlast30
 ```
 
-### Step 2: Install Dependencies
+### 3. Install Dependencies
 
-Using npm:
 ```bash
 npm install
 ```
 
-Or using yarn:
+### 4. Start the Development Server
+
 ```bash
-yarn install
+npm run start
 ```
 
-### Step 3: Verify Installation
+### 5. Run on a Device or Simulator
 
-Ensure all dependencies are installed correctly:
-```bash
-npm list
-```
+Choose one:
 
-## Usage
-
-### Starting the Development Server
-
-Start the Expo development server:
+- Expo Go on physical device (scan QR)
+- Android emulator
+- iOS simulator (macOS only)
+- Web preview
 
 ```bash
-npm start
-```
-
-This will open the Expo DevTools where you can choose your platform.
-
-### Running on Different Platforms
-
-#### Web (Browser)
-```bash
+npm run android
+npm run ios
 npm run web
 ```
 
-The app will open in your default browser at `http://localhost:19006`
+### 6. Validate Code Quality
 
-#### iOS (macOS only)
+Run these before commits:
+
 ```bash
-npm run ios
+npm run typecheck
+npm run lint
 ```
 
-This will build and launch the app in the iOS Simulator. Make sure Xcode is installed.
+Optional formatting pass:
 
-#### Android
 ```bash
-npm run android
+npm run format
 ```
 
-This will build and launch the app on a connected Android device or Android emulator.
+### 7. Configure Notifications
 
-### Using Expo Go (Mobile Preview)
+1. Open Settings tab.
+2. Use the reminder permission card to grant notification access.
+3. Allow permissions when prompted by the OS.
+4. Keep timezone automatic in app settings for reliable reminder timing.
 
-For the quickest way to preview your app on a real device:
+### 8. First Use Flow
 
-1. Install the **Expo Go** app on your iOS or Android device
-2. Run `npm start`
-3. Scan the QR code displayed in the terminal with your device's camera
-4. The app will open in Expo Go
+1. Select theme preference (light, dark, or system).
+2. Set daily hydration target.
+3. Complete daily protocol tasks from Home.
+4. Add hydration throughout the day.
+5. Log measurements periodically.
+6. Review trends in Progress and Analytics.
+7. Use Calendar for completion review.
+8. Export PDF or CSV when needed.
+9. Create backups from Settings.
 
 ## Project Structure
 
-```
-BellyBlast30/
-├── App.tsx              # Main app component
-├── index.ts             # Entry point
-├── app.json             # Expo configuration
-├── package.json         # Project dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-├── assets/              # Images, icons, splash screens
-│   ├── icon.png
-│   ├── splash-icon.png
-│   ├── adaptive-icon.png
-│   └── favicon.png
-└── README.md            # This file
-```
+- app
+  - Route files and tab navigation via Expo Router
+- components
+  - Reusable UI primitives, cards, charts, forms, and progress widgets
+- hooks
+  - View-model hooks that bind screens to state and services
+- services
+  - Notifications, analytics, validation, exports, backup, and repositories
+- store
+  - Zustand persisted slices with migration support
+- constants, data, types, utils, theme
+  - Domain models, protocol constants, mock data, shared helpers, and design tokens
 
-## Available Scripts
+## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start the Expo development server |
-| `npm run ios` | Build and run on iOS Simulator |
-| `npm run android` | Build and run on Android Emulator/Device |
-| `npm run web` | Run in web browser |
-
-## Development
-
-### Tech Stack
-
-- **Framework**: React Native with Expo
-- **Language**: TypeScript
-- **Package Manager**: npm/yarn
-- **Styling**: React Native StyleSheet
-
-### Making Changes
-
-1. Edit files in the project (e.g., `App.tsx`)
-2. Changes will automatically reload when you save
-3. Use the Expo DevTools to debug and view errors
-
-### Building for Production
-
-To create a production build, use Expo's build service:
-
-```bash
-# Build for iOS
-expo build:ios
-
-# Build for Android
-expo build:android
-```
-
-For detailed information, visit the [Expo Build Documentation](https://docs.expo.dev/versions/v54.0.0/build/setup/).
+- npm run start
+- npm run android
+- npm run ios
+- npm run web
+- npm run typecheck
+- npm run lint
+- npm run lint:fix
+- npm run format
 
 ## Troubleshooting
 
-### "Command not found: expo"
-Install Expo CLI globally:
+### Metro or startup issues
+
+- Stop running Expo processes, then restart:
+
 ```bash
-npm install -g expo-cli
+npm run start
 ```
 
-### "Port 19000 is already in use"
-Kill the process using the port or use a different port:
+- If cache-related issues appear:
+
 ```bash
-npm start -- --port 19001
+npx expo start -c
 ```
 
-### "No devices available"
-- **iOS**: Ensure Xcode is installed and simulator is running
-- **Android**: Check that Android emulator is running or device is connected via USB
-- **Web**: Make sure port 19006 is available
+### Notification behavior in Expo Go
 
-### App not loading after changes
-Try clearing the Expo cache:
+- If reminders do not trigger as expected, configure permissions again in Settings.
+- Native notification behavior can vary between Expo Go and development builds.
+
+### Dependency mismatch after upgrades
+
+Use Expo-managed install to align package versions:
+
 ```bash
-npm start -- --clear
+npx expo install <package-name>
 ```
 
-## Resources
+## Documentation
 
-- [Expo Documentation](https://docs.expo.dev/versions/v54.0.0/)
-- [React Native Documentation](https://reactnative.dev/)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
-
-## License
-
-This project is private. Do not distribute without permission.
-
-## Support
-
-For issues or questions, please open an issue in the repository or contact the project maintainer.
-
----
-
-**Happy coding! 💪**
+- docs/INSTALLATION.md
+- docs/DEVELOPMENT.md
+- docs/ARCHITECTURE.md
