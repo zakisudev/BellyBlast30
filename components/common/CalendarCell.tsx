@@ -55,18 +55,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }]
   },
   cell: {
-    borderRadius: 14,
-    borderWidth: 1.2,
+    borderRadius: 15,
     height: 46,
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#0B1A28",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 4
-    },
-    elevation: 2
+    justifyContent: "center"
   }
 });

@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Snackbar, Text, useTheme } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,6 +11,7 @@ import { MeasurementForm } from "@/components/forms/MeasurementForm";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { BeforeAfterSlider } from "@/components/progress/BeforeAfterSlider";
 import { useMeasurements } from "@/hooks/useMeasurements";
+import { useScrollToTopOnFocus } from "@/hooks/useScrollToTopOnFocus";
 import { useProgressStore } from "@/store/progressStore";
 import type { AppTheme } from "@/theme/paper";
 import { todayISO } from "@/utils/date";
@@ -20,6 +21,9 @@ export default function ProgressScreen() {
   const photos = useProgressStore((state) => state.photos);
   const addPhoto = useProgressStore((state) => state.addPhoto);
   const theme = useTheme<AppTheme>();
+  const scrollRef = useRef<ScrollView>(null);
+
+  useScrollToTopOnFocus(scrollRef);
 
   const sortedPhotos = [...photos].sort((a, b) => a.date.localeCompare(b.date));
   const beforePhoto = sortedPhotos[0];
@@ -63,7 +67,7 @@ export default function ProgressScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <LinearGradient colors={backgroundGradient} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Text variant="headlineSmall" style={[styles.title, theme.dark && styles.titleDark]}>
           Progress
         </Text>

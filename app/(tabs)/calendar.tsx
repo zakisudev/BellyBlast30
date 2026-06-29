@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Dialog, Portal, Text, useTheme } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { CalendarCell } from "@/components/common/CalendarCell";
 import { StatCard } from "@/components/cards/StatCard";
+import { useScrollToTopOnFocus } from "@/hooks/useScrollToTopOnFocus";
 import { useTaskStore } from "@/store/taskStore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { AppTheme } from "@/theme/paper";
@@ -13,6 +14,9 @@ export default function CalendarScreen() {
   const recordsByDay = useTaskStore((state) => state.recordsByDay);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const theme = useTheme<AppTheme>();
+  const scrollRef = useRef<ScrollView>(null);
+
+  useScrollToTopOnFocus(scrollRef);
 
   const statusForDay = (day: number): "complete" | "partial" | "missed" => {
     const monthPrefix = new Date().toISOString().slice(0, 8);
@@ -45,7 +49,7 @@ export default function CalendarScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <LinearGradient colors={backgroundGradient} style={StyleSheet.absoluteFill} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
         <Text variant="headlineSmall" style={[styles.title, theme.dark && styles.titleDark]}>
           30-Day Calendar
         </Text>
@@ -70,7 +74,14 @@ export default function CalendarScreen() {
           </View>
         </View>
 
-        <View style={styles.grid}>
+        <View
+          style={[
+            styles.grid,
+            {
+              backgroundColor: theme.dark ? "#0E1117" : "#ffffff"
+            }
+          ]}
+        >
           {Array.from({ length: 30 }, (_, index) => index + 1).map((day) => (
             <CalendarCell
               key={day}
@@ -128,6 +139,17 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: "row",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
+    borderRadius: 15,
+    overflow: "hidden",
+    padding: 5,
+    shadowColor: "#0B1A28",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 4
+    },
+    elevation: 2
   }
 });

@@ -5,10 +5,22 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "bellyblast30",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070B11"
+    },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#C6EC22"
+        }
+      ],
       "expo-image-picker",
       "expo-media-library",
       "expo-asset",
@@ -19,7 +31,12 @@
     },
     "android": {
       "package": "com.bellyblast.thirty",
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": ["POST_NOTIFICATIONS"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#070B11"
+      }
     },
     "ios": {
       "bundleIdentifier": "com.bellyblast.thirty",
@@ -29,6 +46,9 @@
         "NSPhotoLibraryUsageDescription": "BellyBlast uses your gallery for progress photos.",
         "NSCameraUsageDescription": "BellyBlast uses your camera to capture progress photos."
       }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "extra": {
       "projectName": "BellyBlast30"

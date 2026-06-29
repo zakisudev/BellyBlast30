@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet } from "react-native";
 import { Snackbar, Text, useTheme as usePaperTheme } from "react-native-paper";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,6 +9,7 @@ import { PermissionBanner } from "@/components/common/PermissionBanner";
 import { SettingsForm } from "@/components/forms/SettingsForm";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useScrollToTopOnFocus } from "@/hooks/useScrollToTopOnFocus";
 import { useStorage } from "@/hooks/useStorage";
 import { useTheme } from "@/hooks/useTheme";
 import { BackupService } from "@/services/BackupService";
@@ -26,9 +27,12 @@ export default function SettingsScreen() {
   const { themeMode, setThemeMode } = useTheme();
   const { setupNotifications, statusText } = useNotifications();
   const { clearAppStorage } = useStorage();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const theme = usePaperTheme<AppTheme>();
+
+  useScrollToTopOnFocus(scrollRef);
   const backgroundGradient = theme.dark
     ? (["#07101A", "#0D1823", "#111B27"] as const)
     : (["#E9F5FF", "#F0FBF7", "#F8F9FF"] as const);
@@ -36,7 +40,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <LinearGradient colors={backgroundGradient} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Text variant="headlineSmall" style={[styles.title, theme.dark && styles.titleDark]}>
           Settings
         </Text>

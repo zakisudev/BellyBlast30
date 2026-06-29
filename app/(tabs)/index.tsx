@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, GestureHandlerRootView } from "react-native-gesture-handler";
+import { useRef } from "react";
 import { Text, useTheme } from "react-native-paper";
 
 import { QuoteCard } from "@/components/cards/QuoteCard";
@@ -10,6 +11,7 @@ import { TaskCard } from "@/components/cards/TaskCard";
 import { ProgressRing } from "@/components/progress/ProgressRing";
 import { WaterTracker } from "@/components/progress/WaterTracker";
 import { useHydration } from "@/hooks/useHydration";
+import { useScrollToTopOnFocus } from "@/hooks/useScrollToTopOnFocus";
 import { useTasks } from "@/hooks/useTasks";
 import { QuoteService } from "@/services/QuoteService";
 import type { AppTheme } from "@/theme/paper";
@@ -19,6 +21,9 @@ export default function HomeScreen() {
   const { tasks, completion, streak, toggleTask } = useTasks();
   const { goalMl, todayMl, progress, addWater } = useHydration();
   const theme = useTheme<AppTheme>();
+  const scrollRef = useRef<ScrollView>(null);
+
+  useScrollToTopOnFocus(scrollRef);
 
   const backgroundGradient = theme.dark
     ? (["#070E14", "#0E1822", "#111B27"] as const)
@@ -32,7 +37,7 @@ export default function HomeScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container} edges={["top"]}>
         <LinearGradient colors={backgroundGradient} style={StyleSheet.absoluteFill} />
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
           <View style={[styles.headerBlock, theme.dark && styles.headerBlockDark]}>
             <Text variant="headlineSmall" style={[styles.title, theme.dark && styles.titleDark]}>
               BellyBlast 30

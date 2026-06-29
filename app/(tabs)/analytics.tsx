@@ -2,11 +2,13 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRef } from "react";
 
 import { TrendChart } from "@/components/charts/TrendChart";
 import { AchievementBadge } from "@/components/common/AchievementBadge";
 import { StatCard } from "@/components/cards/StatCard";
 import { useAchievements } from "@/hooks/useAchievements";
+import { useScrollToTopOnFocus } from "@/hooks/useScrollToTopOnFocus";
 import { useStatistics } from "@/hooks/useStatistics";
 import type { AppTheme } from "@/theme/paper";
 
@@ -15,6 +17,9 @@ export default function AnalyticsScreen() {
     useStatistics();
   const { achievements } = useAchievements();
   const theme = useTheme<AppTheme>();
+  const scrollRef = useRef<ScrollView>(null);
+
+  useScrollToTopOnFocus(scrollRef);
   const backgroundGradient = theme.dark
     ? (["#07101A", "#0D1823", "#121D29"] as const)
     : (["#EAF4FF", "#EFFAF5", "#F7F9FF"] as const);
@@ -22,7 +27,7 @@ export default function AnalyticsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <LinearGradient colors={backgroundGradient} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Text variant="headlineSmall" style={[styles.title, theme.dark && styles.titleDark]}>
           Analytics
         </Text>
