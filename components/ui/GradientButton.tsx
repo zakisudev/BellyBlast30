@@ -1,18 +1,64 @@
 import { Pressable, StyleSheet } from "react-native";
-import { Text } from "react-native-paper";
+import { ActivityIndicator, Text } from "react-native-paper";
+import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface GradientButtonProps {
   label: string;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
+  disabled?: boolean;
+  showLoadingOnPress?: boolean;
+  minLoadingMs?: number;
 }
 
-export const GradientButton = ({ label, onPress }: GradientButtonProps) => {
+const wait = (ms: number) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, ms));
+
+export const GradientButton = ({
+  label,
+  onPress,
+  disabled = false,
+  showLoadingOnPress = true,
+  minLoadingMs = 350
+}: GradientButtonProps) => {
+  const [loading, setLoading] = useState(false);
+
+  const handlePress = async () => {
+    if (disabled || loading) {
+      return;
+    }
+
+    if (!showLoadingOnPress) {
+      await Promise.resolve(onPress());
+      return;
+    }
+
+    setLoading(true);
+    const startedAt = Date.now();
+
+    try {
+      await Promise.resolve(onPress());
+    } finally {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < minLoadingMs) {
+        await wait(minLoadingMs - elapsed);
+      }
+      setLoading(false);
+    }
+  };
+
   return (
     <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+      onPress={() => {
+        void handlePress();
+      }}
+      disabled={disabled || loading}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && !loading && styles.pressed,
+        (disabled || loading) && styles.disabled
+      ]}
       accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       <LinearGradient
         colors={["#11897C", "#30B8A6", "#2E8EE1"]}
@@ -20,9 +66,12 @@ export const GradientButton = ({ label, onPress }: GradientButtonProps) => {
         end={[1, 1]}
         style={styles.gradient}
       >
-        <Text variant="titleMedium" style={styles.label}>
-          {label}
-        </Text>
+        {loading ? <ActivityIndicator color="#fff" size="small" /> : null}
+        {!loading ? (
+          <Text variant="titleMedium" style={styles.label}>
+            {label}
+          </Text>
+        ) : null}
       </LinearGradient>
     </Pressable>
   );
@@ -43,6 +92,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     transform: [{ scale: 0.98 }]
+  },
+  disabled: {
+    opacity: 0.78
   },
   gradient: {
     minHeight: 44,

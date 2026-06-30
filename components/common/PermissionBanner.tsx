@@ -8,7 +8,7 @@ import type { AppTheme } from "@/theme/paper";
 interface PermissionBannerProps {
   title: string;
   description: string;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   actionLabel?: string;
   icon?: string;
   tone?: "teal" | "blue" | "amber";

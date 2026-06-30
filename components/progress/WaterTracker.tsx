@@ -27,6 +27,14 @@ export const WaterTracker = ({
 }: WaterTrackerProps) => {
   const [customAmount, setCustomAmount] = useState("300");
   const theme = useTheme<AppTheme>();
+  const overGoal = goalMl > 0 && todayMl > goalMl;
+  const indicatorColors = overGoal
+    ? theme.dark
+      ? ["#F8C86A", "#70E38F"]
+      : ["#F0A843", "#57C86F"]
+    : theme.dark
+      ? ["#6DE8D0", "#BFEA63"]
+      : ["#2CAFA8", "#8FD54E"];
 
   return (
     <GlassCard padding={18} tint={tint}>
@@ -40,12 +48,17 @@ export const WaterTracker = ({
       </View>
       <View style={[styles.barTrack, theme.dark && styles.barTrackDark]}>
         <LinearGradient
-          colors={theme.dark ? ["#6DE8D0", "#BFEA63"] : ["#2CAFA8", "#8FD54E"]}
+          colors={indicatorColors as [string, string]}
           start={[0, 0]}
           end={[1, 0]}
           style={[styles.barFill, { width: `${Math.round(progress * 100)}%` }]}
         />
       </View>
+      {overGoal ? (
+        <Text variant="bodySmall" style={[styles.supportText, { color: theme.colors.onSurface }]}>
+          Amazing consistency. You are above goal today, keep it balanced and steady.
+        </Text>
+      ) : null}
       <View style={styles.quickRow}>
         {WATER_QUICK_ADD_OPTIONS_ML.map((amount) => (
           <GradientButton key={amount} label={`+${amount} ml`} onPress={() => onAddWater(amount)} />
@@ -101,6 +114,10 @@ const styles = StyleSheet.create({
   barFill: {
     height: "100%",
     borderRadius: 999
+  },
+  supportText: {
+    marginTop: 10,
+    opacity: 0.8
   },
   quickRow: {
     marginTop: 12,
