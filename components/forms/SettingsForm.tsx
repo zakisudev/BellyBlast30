@@ -3,14 +3,13 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import { Switch, Text, TextInput } from "react-native-paper";
+import { Text, TextInput } from "react-native-paper";
 
 import { GradientButton } from "@/components/ui/GradientButton";
 import type { AppSettings } from "@/types/models";
 
 const settingsSchema = z.object({
-  waterGoalMl: z.coerce.number().min(1000).max(5000),
-  notificationsEnabled: z.boolean()
+  waterGoalMl: z.coerce.number().min(1000).max(5000)
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
@@ -24,17 +23,15 @@ export const SettingsForm = ({ settings, onSubmit }: SettingsFormProps) => {
   const { control, handleSubmit, reset } = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      waterGoalMl: settings.waterGoalMl,
-      notificationsEnabled: settings.notificationsEnabled
+      waterGoalMl: settings.waterGoalMl
     }
   });
 
   useEffect(() => {
     reset({
-      waterGoalMl: settings.waterGoalMl,
-      notificationsEnabled: settings.notificationsEnabled
+      waterGoalMl: settings.waterGoalMl
     });
-  }, [reset, settings.notificationsEnabled, settings.waterGoalMl]);
+  }, [reset, settings.waterGoalMl]);
 
   return (
     <View style={styles.container}>
@@ -55,16 +52,6 @@ export const SettingsForm = ({ settings, onSubmit }: SettingsFormProps) => {
           />
         )}
       />
-      <Controller
-        control={control}
-        name="notificationsEnabled"
-        render={({ field: { onChange, value } }) => (
-          <View style={styles.switchRow}>
-            <Text variant="bodyLarge">Enable Notifications</Text>
-            <Switch value={value} onValueChange={onChange} />
-          </View>
-        )}
-      />
       <GradientButton label="Save Settings" onPress={handleSubmit(onSubmit)} />
     </View>
   );
@@ -77,11 +64,5 @@ const styles = StyleSheet.create({
   metricHint: {
     opacity: 0.72,
     marginBottom: 2
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 4
   }
 });
