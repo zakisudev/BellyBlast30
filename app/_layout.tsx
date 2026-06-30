@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { GlobalFeedbackSnackbar } from "@/components/common/GlobalFeedbackSnackbar";
 import { useNotificationBootstrap } from "@/hooks/useNotificationBootstrap";
 import { AppThemeProvider } from "@/theme/ThemeProvider";
 
@@ -21,6 +22,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="+not-found" options={{ headerShown: true, title: "Not Found" }} />
         </Stack>
+        <GlobalFeedbackSnackbar />
       </AppThemeProvider>
     </QueryClientProvider>
   );

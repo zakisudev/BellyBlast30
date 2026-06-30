@@ -42,7 +42,7 @@ export default function HomeScreen() {
             <Text variant="headlineSmall" style={[styles.title, theme.dark && styles.titleDark]}>
               BellyBlast 30
             </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
+            <Text variant="bodySmall" style={styles.subtitle}>
               Complete six daily habits and keep your momentum.
             </Text>
             <View style={styles.heroProgressWrap}>
@@ -91,6 +91,7 @@ export default function HomeScreen() {
               description={task.description}
               dueTime={task.dueTime}
               completed={task.completed}
+              disabled={task.isDisabled}
               onToggle={() => toggleTask(task.id)}
               tint={
                 task.completed
