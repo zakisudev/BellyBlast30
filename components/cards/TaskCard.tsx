@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     opacity: 0.94
   },
   rowDisabled: {
-    opacity: 0.56
+    opacity: 0.3
   },
   accentRail: {
     width: 5,

@@ -37,7 +37,7 @@ export const AchievementBadge = ({ title, description, icon, unlocked }: Achieve
 
   return (
     <GlassCard>
-      <View style={styles.row}>
+      <View style={[styles.row, { opacity: unlocked ? 1 : 0.3 }]}>
         <Animated.View
           style={[styles.iconBubble, unlocked ? styles.unlocked : styles.locked, animatedStyle]}
         >
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#D6EFE8"
   },
   locked: {
-    backgroundColor: "#E9ECEB"
+    backgroundColor: "#D6EFE8"
   },
   content: {
     flex: 1,
