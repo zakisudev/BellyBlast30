@@ -7,6 +7,8 @@ import type { ServiceResult } from "@/types/models";
 const NOTIFICATION_TZ_KEY = "bb30_notifications_timezone";
 
 let notificationsReady = false;
+let rescheduleInFlight: Promise<ServiceResult<number>> | null = null;
+let syncInFlightByTimezone: Record<string, Promise<ServiceResult<boolean>> | undefined> = {};
 
 const loadNotifications = async () => {
   const Notifications = await import("expo-notifications");
@@ -59,88 +61,127 @@ export class NotificationService {
   }
 
   static async rescheduleDailyProtocol(): Promise<ServiceResult<number>> {
+    if (rescheduleInFlight) {
+      return rescheduleInFlight;
+    }
+
+    rescheduleInFlight = (async () => {
+      try {
+        const Notifications = await loadNotifications();
+
+        await Notifications.cancelAllScheduledNotificationsAsync();
+
+        let scheduledCount = 0;
+
+        for (const task of DAILY_PROTOCOL_TASKS) {
+          const [hourString, minuteString] = task.dueTime.split(":");
+          const hour = Number(hourString);
+          const minute = Number(minuteString);
+
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: task.notificationTitle,
+              body: task.notificationBody,
+              sound: "default"
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DAILY,
+              hour,
+              minute
+            }
+          });
+
+          scheduledCount += 1;
+        }
+
+        return { ok: true, data: scheduledCount };
+      } catch {
+        return {
+          ok: false,
+          error: {
+            code: "notification_error",
+            message: "Unable to schedule reminders."
+          }
+        };
+      } finally {
+        rescheduleInFlight = null;
+      }
+    })();
+
+    return rescheduleInFlight;
+  }
+
+  static async clearScheduledDailyProtocol(): Promise<ServiceResult<true>> {
     try {
       const Notifications = await loadNotifications();
-
       await Notifications.cancelAllScheduledNotificationsAsync();
-
-      let scheduledCount = 0;
-
-      for (const task of DAILY_PROTOCOL_TASKS) {
-        const [hourString, minuteString] = task.dueTime.split(":");
-        const hour = Number(hourString);
-        const minute = Number(minuteString);
-
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: task.notificationTitle,
-            body: task.notificationBody,
-            sound: "default"
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour,
-            minute
-          }
-        });
-
-        scheduledCount += 1;
-      }
-
-      return { ok: true, data: scheduledCount };
+      return { ok: true, data: true };
     } catch {
       return {
         ok: false,
         error: {
           code: "notification_error",
-          message: "Unable to schedule reminders."
+          message: "Unable to clear reminders."
         }
       };
     }
   }
 
   static async syncForTimezone(currentTimezone: string): Promise<ServiceResult<boolean>> {
-    const permission = await NotificationService.requestPermission();
-    if (!permission.ok) {
-      return {
-        ok: false,
-        error: permission.error
-      };
+    const inFlight = syncInFlightByTimezone[currentTimezone];
+    if (inFlight) {
+      return inFlight;
     }
 
-    if (!permission.data) {
-      return { ok: true, data: false };
-    }
+    syncInFlightByTimezone[currentTimezone] = (async () => {
+      const permission = await NotificationService.requestPermission();
+      if (!permission.ok) {
+        return {
+          ok: false,
+          error: permission.error
+        };
+      }
 
-    const timezoneResult = await StorageService.getItem<string>(NOTIFICATION_TZ_KEY);
-    if (!timezoneResult.ok) {
-      return {
-        ok: false,
-        error: timezoneResult.error
-      };
-    }
+      if (!permission.data) {
+        return { ok: true, data: false };
+      }
 
-    const needsReschedule = timezoneResult.data !== currentTimezone;
-    if (!needsReschedule) {
-      return { ok: true, data: false };
-    }
+      const timezoneResult = await StorageService.getItem<string>(NOTIFICATION_TZ_KEY);
+      if (!timezoneResult.ok) {
+        return {
+          ok: false,
+          error: timezoneResult.error
+        };
+      }
 
-    const scheduled = await NotificationService.rescheduleDailyProtocol();
-    if (!scheduled.ok) {
-      return {
-        ok: false,
-        error: scheduled.error
-      };
-    }
+      const needsReschedule = timezoneResult.data !== currentTimezone;
+      if (!needsReschedule) {
+        return { ok: true, data: false };
+      }
 
-    const saved = await StorageService.setItem(NOTIFICATION_TZ_KEY, currentTimezone);
-    if (!saved.ok) {
-      return {
-        ok: false,
-        error: saved.error
-      };
-    }
+      const scheduled = await NotificationService.rescheduleDailyProtocol();
+      if (!scheduled.ok) {
+        return {
+          ok: false,
+          error: scheduled.error
+        };
+      }
 
-    return { ok: true, data: true };
+      const saved = await StorageService.setItem(NOTIFICATION_TZ_KEY, currentTimezone);
+      if (!saved.ok) {
+        return {
+          ok: false,
+          error: saved.error
+        };
+      }
+
+      return { ok: true, data: true };
+    })();
+
+    try {
+      return await syncInFlightByTimezone[currentTimezone]!;
+    } finally {
+      delete syncInFlightByTimezone[currentTimezone];
+    }
   }
 }
