@@ -10,6 +10,17 @@ let notificationsReady = false;
 let rescheduleInFlight: Promise<ServiceResult<number>> | null = null;
 let syncInFlightByTimezone: Record<string, Promise<ServiceResult<boolean>> | undefined> = {};
 
+const getReminderTriggerTime = (dueTime: string) => {
+  const [hourString, minuteString] = dueTime.split(":");
+  const dueMinutes = Number(hourString) * 60 + Number(minuteString);
+  const reminderMinutes = (dueMinutes - 30 + 24 * 60) % (24 * 60);
+
+  return {
+    hour: Math.floor(reminderMinutes / 60),
+    minute: reminderMinutes % 60
+  };
+};
+
 const loadNotifications = async () => {
   const Notifications = await import("expo-notifications");
 
@@ -74,14 +85,12 @@ export class NotificationService {
         let scheduledCount = 0;
 
         for (const task of DAILY_PROTOCOL_TASKS) {
-          const [hourString, minuteString] = task.dueTime.split(":");
-          const hour = Number(hourString);
-          const minute = Number(minuteString);
+          const { hour, minute } = getReminderTriggerTime(task.dueTime);
 
           await Notifications.scheduleNotificationAsync({
             content: {
               title: task.notificationTitle,
-              body: task.notificationBody,
+              body: `You have 30 minutes left to finish ${task.title} and mark it complete before ${task.dueTime}.`,
               sound: "default"
             },
             trigger: {
