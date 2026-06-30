@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet } from "react-native";
 import { Text, useTheme as usePaperTheme } from "react-native-paper";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -44,15 +44,51 @@ export default function SettingsScreen() {
   const { showSuccess, showError, showInfo } = useAppFeedback();
   const { themeMode, setThemeMode } = useTheme();
   const { setupNotifications } = useNotifications();
-  const { requestPhotoPermissions } = usePermissions();
+  const { cameraGranted, libraryGranted, photoPermissionsChecked, requestPhotoPermissions } =
+    usePermissions();
   const { clearAppStorage } = useStorage();
   const scrollRef = useRef<ScrollView>(null);
   const theme = usePaperTheme<AppTheme>();
+  const [remindersLoading, setRemindersLoading] = useState(false);
+
+  const handleReminderToggle = async (enabled: boolean) => {
+    if (remindersLoading) {
+      return;
+    }
+
+    setRemindersLoading(true);
+
+    try {
+      if (enabled) {
+        const message = await setupNotifications();
+        if (message.toLowerCase().includes("scheduled")) {
+          updateSettings({ notificationsEnabled: true });
+          showSuccess(message);
+        } else {
+          updateSettings({ notificationsEnabled: false });
+          showError(message);
+        }
+        return;
+      }
+
+      const clearResult = await NotificationService.clearScheduledDailyProtocol();
+      if (clearResult.ok) {
+        updateSettings({ notificationsEnabled: false });
+        showInfo("Daily reminders disabled.");
+      } else {
+        updateSettings({ notificationsEnabled: true });
+        showError(clearResult.error.message);
+      }
+    } finally {
+      setRemindersLoading(false);
+    }
+  };
 
   useScrollToTopOnFocus(scrollRef);
   const backgroundGradient = theme.dark
     ? (["#07101A", "#0D1823", "#111B27"] as const)
     : (["#E9F5FF", "#F0FBF7", "#F8F9FF"] as const);
+  const photoPermissionsGranted = cameraGranted && libraryGranted;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -64,15 +100,6 @@ export default function SettingsScreen() {
         <Text variant="bodyMedium" style={styles.subtitle}>
           Notifications, theme, goals, exports, and backups.
         </Text>
-
-        <GlassCard tint={theme.dark ? "#152739" : "#E3F1FF"}>
-          <Text variant="labelLarge" style={styles.heroLabel}>
-            Control Center
-          </Text>
-          <Text variant="titleLarge" style={[styles.heroTitle, theme.dark && styles.titleDark]}>
-            Keep your protocol synced and secure
-          </Text>
-        </GlassCard>
 
         <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && styles.titleDark]}>
           Appearance
@@ -87,24 +114,7 @@ export default function SettingsScreen() {
             settings={settings}
             onSubmit={async (values) => {
               setGoal(values.waterGoalMl);
-              updateSettings({ notificationsEnabled: values.notificationsEnabled });
-
-              if (values.notificationsEnabled) {
-                const message = await setupNotifications();
-                if (message.toLowerCase().includes("scheduled")) {
-                  showSuccess(`Settings saved. ${message}`);
-                } else {
-                  showError(`Settings saved. ${message}`);
-                }
-                return;
-              }
-
-              const clearResult = await NotificationService.clearScheduledDailyProtocol();
-              if (clearResult.ok) {
-                showInfo("Settings saved. Notifications disabled.");
-              } else {
-                showError(`Settings saved. ${clearResult.error.message}`);
-              }
+              showSuccess("Settings saved.");
             }}
           />
         </GlassCard>
@@ -116,32 +126,28 @@ export default function SettingsScreen() {
           title="Daily Reminders"
           description="Allow BellyBlast to schedule protocol reminders and re-sync after timezone changes."
           icon="bell-ring-outline"
-          actionLabel="Configure"
           tone="teal"
-          onPress={async () => {
-            const message = await setupNotifications();
-            if (message.toLowerCase().includes("scheduled")) {
-              showSuccess(message);
-            } else {
-              showError(message);
-            }
-          }}
+          switchValue={settings.notificationsEnabled}
+          switchLoading={remindersLoading}
+          onToggleSwitch={handleReminderToggle}
         />
-        <PermissionBanner
-          title="Photos"
-          description="Allow camera and media access to save progress photos."
-          icon="camera-outline"
-          actionLabel="Grant"
-          tone="blue"
-          onPress={async () => {
-            const result = await requestPhotoPermissions();
-            if (result.camera && result.library) {
-              showSuccess("Camera and gallery permissions granted.");
-            } else {
-              showError("Some photo permissions were denied.");
-            }
-          }}
-        />
+        {photoPermissionsChecked && !photoPermissionsGranted ? (
+          <PermissionBanner
+            title="Photos"
+            description="Allow camera and media access to save progress photos."
+            icon="camera-outline"
+            actionLabel="Grant"
+            tone="blue"
+            onPress={async () => {
+              const result = await requestPhotoPermissions();
+              if (result.camera && result.library) {
+                showSuccess("Camera and gallery permissions granted.");
+              } else {
+                showError("Some photo permissions were denied.");
+              }
+            }}
+          />
+        ) : null}
 
         <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && styles.titleDark]}>
           Data & Export
