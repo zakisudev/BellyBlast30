@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet } from "react-native";
-import { Snackbar, Text, useTheme as usePaperTheme } from "react-native-paper";
-import { useRef, useState } from "react";
+import { Text, useTheme as usePaperTheme } from "react-native-paper";
+import { useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -8,28 +8,45 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PermissionBanner } from "@/components/common/PermissionBanner";
 import { SettingsForm } from "@/components/forms/SettingsForm";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useHydration } from "@/hooks/useHydration";
+import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { useNotifications } from "@/hooks/useNotifications";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useScrollToTopOnFocus } from "@/hooks/useScrollToTopOnFocus";
 import { useStorage } from "@/hooks/useStorage";
 import { useTheme } from "@/hooks/useTheme";
 import { BackupService } from "@/services/BackupService";
 import { CSVService } from "@/services/CSVService";
+import { NotificationService } from "@/services/NotificationService";
 import { PDFService } from "@/services/PDFService";
+import { useAchievementsStore } from "@/store/achievementsStore";
+import { useHydrationStore } from "@/store/hydrationStore";
 import { useProgressStore } from "@/store/progressStore";
 import { useSettingsStore } from "@/store/settingsStore";
+import { useStatisticsStore } from "@/store/statisticsStore";
+import { useTaskStore } from "@/store/taskStore";
 import type { AppTheme } from "@/theme/paper";
 
 export default function SettingsScreen() {
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const measurements = useProgressStore((state) => state.measurements);
+  const photos = useProgressStore((state) => state.photos);
+  const recordsByDay = useTaskStore((state) => state.recordsByDay);
+  const hydrationEntriesByDay = useHydrationStore((state) => state.entriesByDay);
+  const hydrationGoalMl = useHydrationStore((state) => state.goalMl);
+  const achievements = useAchievementsStore((state) => state.achievements);
+  const longestStreak = useStatisticsStore((state) => state.longestStreak);
+  const currentStreak = useStatisticsStore((state) => state.currentStreak);
+  const completionRate = useStatisticsStore((state) => state.completionRate);
 
+  const { setGoal } = useHydration();
+  const { showSuccess, showError, showInfo } = useAppFeedback();
   const { themeMode, setThemeMode } = useTheme();
-  const { setupNotifications, statusText } = useNotifications();
+  const { setupNotifications } = useNotifications();
+  const { requestPhotoPermissions } = usePermissions();
   const { clearAppStorage } = useStorage();
   const scrollRef = useRef<ScrollView>(null);
-
-  const [snackbarMessage, setSnackbarMessage] = useState("");
   const theme = usePaperTheme<AppTheme>();
 
   useScrollToTopOnFocus(scrollRef);
@@ -68,9 +85,26 @@ export default function SettingsScreen() {
         <GlassCard tint={theme.dark ? "#152536" : "#EAF4FF"}>
           <SettingsForm
             settings={settings}
-            onSubmit={(values) => {
-              updateSettings(values);
-              setSnackbarMessage("Settings saved.");
+            onSubmit={async (values) => {
+              setGoal(values.waterGoalMl);
+              updateSettings({ notificationsEnabled: values.notificationsEnabled });
+
+              if (values.notificationsEnabled) {
+                const message = await setupNotifications();
+                if (message.toLowerCase().includes("scheduled")) {
+                  showSuccess(`Settings saved. ${message}`);
+                } else {
+                  showError(`Settings saved. ${message}`);
+                }
+                return;
+              }
+
+              const clearResult = await NotificationService.clearScheduledDailyProtocol();
+              if (clearResult.ok) {
+                showInfo("Settings saved. Notifications disabled.");
+              } else {
+                showError(`Settings saved. ${clearResult.error.message}`);
+              }
             }}
           />
         </GlassCard>
@@ -85,8 +119,27 @@ export default function SettingsScreen() {
           actionLabel="Configure"
           tone="teal"
           onPress={async () => {
-            await setupNotifications();
-            setSnackbarMessage(statusText || "Reminder setup complete.");
+            const message = await setupNotifications();
+            if (message.toLowerCase().includes("scheduled")) {
+              showSuccess(message);
+            } else {
+              showError(message);
+            }
+          }}
+        />
+        <PermissionBanner
+          title="Photos"
+          description="Allow camera and media access to save progress photos."
+          icon="camera-outline"
+          actionLabel="Grant"
+          tone="blue"
+          onPress={async () => {
+            const result = await requestPhotoPermissions();
+            if (result.camera && result.library) {
+              showSuccess("Camera and gallery permissions granted.");
+            } else {
+              showError("Some photo permissions were denied.");
+            }
           }}
         />
 
@@ -104,7 +157,11 @@ export default function SettingsScreen() {
               `Completion focus: ${settings.waterGoalMl} ml hydration goal`,
               `Measurements entries: ${measurements.length}`
             ]);
-            setSnackbarMessage(result.ok ? "PDF exported." : result.error.message);
+            if (result.ok) {
+              showSuccess("PDF exported.");
+            } else {
+              showError(result.error.message);
+            }
           }}
         />
         <PermissionBanner
@@ -115,7 +172,11 @@ export default function SettingsScreen() {
           tone="teal"
           onPress={async () => {
             const result = await CSVService.exportMeasurements(measurements);
-            setSnackbarMessage(result.ok ? "CSV exported." : result.error.message);
+            if (result.ok) {
+              showSuccess("CSV exported.");
+            } else {
+              showError(result.error.message);
+            }
           }}
         />
         <PermissionBanner
@@ -125,8 +186,30 @@ export default function SettingsScreen() {
           actionLabel="Backup"
           tone="amber"
           onPress={async () => {
-            const result = await BackupService.exportJson({ settings, measurements });
-            setSnackbarMessage(result.ok ? "Backup shared." : result.error.message);
+            const result = await BackupService.exportJson({
+              exportedAt: new Date().toISOString(),
+              settings,
+              tasks: { recordsByDay },
+              hydration: {
+                goalMl: settings.waterGoalMl || hydrationGoalMl,
+                entriesByDay: hydrationEntriesByDay
+              },
+              progress: {
+                measurements,
+                photos
+              },
+              achievements,
+              statistics: {
+                longestStreak,
+                currentStreak,
+                completionRate
+              }
+            });
+            if (result.ok) {
+              showSuccess("Backup shared.");
+            } else {
+              showError(result.error.message);
+            }
           }}
         />
         <PermissionBanner
@@ -137,13 +220,9 @@ export default function SettingsScreen() {
           tone="blue"
           onPress={async () => {
             const message = await clearAppStorage();
-            setSnackbarMessage(message);
+            showInfo(message);
           }}
         />
-
-        <Snackbar visible={Boolean(snackbarMessage)} onDismiss={() => setSnackbarMessage("")}>
-          {snackbarMessage}
-        </Snackbar>
       </ScrollView>
     </SafeAreaView>
   );

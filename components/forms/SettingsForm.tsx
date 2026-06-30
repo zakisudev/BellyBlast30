@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { Switch, Text, TextInput } from "react-native-paper";
 
@@ -20,13 +21,20 @@ interface SettingsFormProps {
 }
 
 export const SettingsForm = ({ settings, onSubmit }: SettingsFormProps) => {
-  const { control, handleSubmit } = useForm<SettingsValues>({
+  const { control, handleSubmit, reset } = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       waterGoalMl: settings.waterGoalMl,
       notificationsEnabled: settings.notificationsEnabled
     }
   });
+
+  useEffect(() => {
+    reset({
+      waterGoalMl: settings.waterGoalMl,
+      notificationsEnabled: settings.notificationsEnabled
+    });
+  }, [reset, settings.notificationsEnabled, settings.waterGoalMl]);
 
   return (
     <View style={styles.container}>
@@ -41,6 +49,7 @@ export const SettingsForm = ({ settings, onSubmit }: SettingsFormProps) => {
             mode="outlined"
             keyboardType="numeric"
             label="Water Goal (ml)"
+            placeholder={String(settings.waterGoalMl)}
             value={String(value)}
             onChangeText={onChange}
           />

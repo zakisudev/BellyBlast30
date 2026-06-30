@@ -12,6 +12,7 @@ interface TaskCardProps {
   description: string;
   dueTime: string;
   completed: boolean;
+  disabled?: boolean;
   onToggle: () => void;
   tint?: string;
 }
@@ -21,12 +22,17 @@ export const TaskCard = ({
   description,
   dueTime,
   completed,
+  disabled = false,
   onToggle,
   tint
 }: TaskCardProps) => {
   const theme = useTheme<AppTheme>();
 
   const toggle = async () => {
+    if (disabled) {
+      return;
+    }
+
     await Haptics.selectionAsync();
     onToggle();
   };
@@ -35,11 +41,14 @@ export const TaskCard = ({
     <Animated.View entering={FadeInRight.duration(220)}>
       <Pressable
         onPress={toggle}
+        disabled={disabled}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: completed }}
+        accessibilityState={{ checked: completed, disabled }}
       >
         <GlassCard padding={18} tint={tint}>
-          <View style={[styles.row, completed && styles.rowCompleted]}>
+          <View
+            style={[styles.row, completed && styles.rowCompleted, disabled && styles.rowDisabled]}
+          >
             <View
               style={[
                 styles.accentRail,
@@ -57,7 +66,7 @@ export const TaskCard = ({
                 {description}
               </Text>
               <Text variant="labelSmall" style={[styles.time, { color: theme.colors.onSurface }]}>
-                Due {dueTime}
+                {disabled ? `Window closed at ${dueTime}` : `Due ${dueTime}`}
               </Text>
             </View>
             <AnimatedCheckbox
@@ -80,6 +89,9 @@ const styles = StyleSheet.create({
   },
   rowCompleted: {
     opacity: 0.94
+  },
+  rowDisabled: {
+    opacity: 0.56
   },
   accentRail: {
     width: 5,
