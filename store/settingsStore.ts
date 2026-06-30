@@ -10,7 +10,7 @@ interface SettingsState {
   updateSettings: (patch: Partial<AppSettings>) => void;
 }
 
-const initialSettings: AppSettings = {
+export const INITIAL_SETTINGS: AppSettings = {
   themeMode: "system",
   notificationsEnabled: true,
   waterGoalMl: DEFAULT_WATER_GOAL_ML,
@@ -22,7 +22,7 @@ const initialSettings: AppSettings = {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      settings: initialSettings,
+      settings: INITIAL_SETTINGS,
       updateSettings: (patch) => {
         set((state) => ({
           settings: {
@@ -45,7 +45,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         return {
           settings: {
-            ...initialSettings,
+            ...INITIAL_SETTINGS,
             ...state.settings,
             waterGoalMl: state.settings?.waterGoalMl ?? derivedMl ?? DEFAULT_WATER_GOAL_ML,
             weightUnit: "kg"

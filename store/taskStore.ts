@@ -13,6 +13,19 @@ interface TaskState {
   getTodayRecords: () => DailyTaskRecord[];
 }
 
+const taskById = Object.fromEntries(DAILY_PROTOCOL_TASKS.map((task) => [task.id, task])) as Record<
+  ProtocolTaskId,
+  (typeof DAILY_PROTOCOL_TASKS)[number]
+>;
+
+const isTaskPastDue = (taskId: ProtocolTaskId, now: Date): boolean => {
+  const task = taskById[taskId];
+  const [hourString, minuteString] = task.dueTime.split(":");
+  const dueAt = new Date(now);
+  dueAt.setHours(Number(hourString), Number(minuteString), 0, 0);
+  return now.getTime() >= dueAt.getTime();
+};
+
 const createDefaultDay = (): DailyTaskRecord[] =>
   DAILY_PROTOCOL_TASKS.map((task) => ({
     taskId: task.id,
@@ -24,6 +37,10 @@ export const useTaskStore = create<TaskState>()(
     (set, get) => ({
       recordsByDay: {},
       toggleTask: (taskId) => {
+        if (isTaskPastDue(taskId, new Date())) {
+          return;
+        }
+
         const date = todayISO();
         const current = get().recordsByDay[date] ?? createDefaultDay();
         const next = current.map((record) => {
