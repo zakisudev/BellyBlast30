@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 999,
     overflow: "hidden",
+    marginTop: 5,
     shadowColor: "#0F5B66",
     shadowOpacity: 0.24,
     shadowRadius: 10,

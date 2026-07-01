@@ -10,14 +10,10 @@ import {
   updateProfile,
   type User
 } from "firebase/auth";
-import * as Google from "expo-auth-session/providers/google";
-import { ResponseType } from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { Platform } from "react-native";
 
 import { auth } from "@/services/firebase";
-
-WebBrowser.maybeCompleteAuthSession();
 
 const env =
   (
@@ -27,21 +23,11 @@ const env =
   ).process?.env ?? {};
 
 const googleClientIds = {
-  expo: env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
   web: env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  ios: env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  android: env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  shared: env.EXPO_PUBLIC_GOOGLE_CLIENT_ID
+  ios: env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
 };
 
-const effectiveGoogleClientId =
-  Platform.OS === "android"
-    ? (googleClientIds.web ?? googleClientIds.android ?? googleClientIds.shared)
-    : Platform.OS === "ios"
-      ? (googleClientIds.ios ?? googleClientIds.expo ?? googleClientIds.shared)
-      : (googleClientIds.web ?? googleClientIds.shared);
-
-const hasAnyGoogleClientId = Boolean(effectiveGoogleClientId);
+const hasNativeGoogleConfig = Platform.OS !== "web" && Boolean(googleClientIds.web);
 
 interface AuthContextValue {
   user: User | null;
@@ -49,33 +35,30 @@ interface AuthContextValue {
   googleReady: boolean;
   googleLoading: boolean;
   googleError: string | null;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<User>;
+  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<User>;
   signOutUser: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function buildGoogleConfig() {
-  return {
-    clientId: effectiveGoogleClientId ?? "missing-google-client-id",
-    responseType: ResponseType.IdToken,
-    usePKCE: false,
-    expoClientId: googleClientIds.expo,
-    webClientId: googleClientIds.web,
-    iosClientId: googleClientIds.ios,
-    androidClientId: googleClientIds.android
-  };
-}
-
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [loading, setLoading] = useState(true);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const googleConfig = useMemo(buildGoogleConfig, []);
-  const [request, response, promptAsync] = Google.useAuthRequest(googleConfig);
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      return;
+    }
+
+    GoogleSignin.configure({
+      webClientId: googleClientIds.web,
+      iosClientId: googleClientIds.ios
+    });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -86,47 +69,17 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    if (!response) {
-      return;
-    }
-
-    if (response.type === "error") {
-      const message =
-        response.params?.error_description ??
-        response.params?.error ??
-        "Google sign-in failed with an invalid OAuth request.";
-      setGoogleError(message);
-      return;
-    }
-
-    if (response.type !== "success") {
-      return;
-    }
-
-    setGoogleError(null);
-
-    const idToken = response.authentication?.idToken ?? response.params.id_token;
-    const accessToken = response.authentication?.accessToken ?? response.params.access_token;
-
-    if (!idToken) {
-      return;
-    }
-
-    const credential = GoogleAuthProvider.credential(idToken, accessToken);
-
-    void signInWithCredential(auth, credential);
-  }, [response]);
-
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading,
-      googleReady: hasAnyGoogleClientId && Boolean(request),
+      googleReady: hasNativeGoogleConfig,
       googleLoading,
       googleError,
       signInWithEmail: async (email, password) => {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        setUser(credential.user);
+        return credential.user;
       },
       signUpWithEmail: async (email, password, displayName) => {
         const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -134,27 +87,57 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         if (displayName?.trim()) {
           await updateProfile(credential.user, { displayName: displayName.trim() });
         }
+
+        setUser(credential.user);
+        return credential.user;
       },
       signOutUser: async () => {
+        if (Platform.OS !== "web") {
+          await GoogleSignin.signOut().catch(() => undefined);
+        }
         await signOut(auth);
+        setUser(null);
       },
       signInWithGoogle: async () => {
-        if (!hasAnyGoogleClientId || !request) {
+        if (!hasNativeGoogleConfig) {
           throw new Error(
-            "Google sign-in is not configured for this platform. Add the correct EXPO_PUBLIC_GOOGLE_*_CLIENT_ID values."
+            "Google sign-in is not configured for this native build. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in .env and rebuild."
           );
         }
 
         setGoogleError(null);
         setGoogleLoading(true);
         try {
-          await promptAsync();
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+          const result = await GoogleSignin.signIn();
+          const idToken =
+            (result as { idToken?: string }).idToken ??
+            (result as { data?: { idToken?: string } }).data?.idToken ??
+            null;
+
+          if (!idToken) {
+            throw new Error("Google sign-in did not return an ID token.");
+          }
+
+          const credential = GoogleAuthProvider.credential(idToken);
+          const userCredential = await signInWithCredential(auth, credential);
+          setUser(userCredential.user);
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code === statusCodes.SIGN_IN_CANCELLED) {
+            return;
+          }
+
+          const message =
+            error instanceof Error ? error.message : "Google sign-in failed on this device.";
+          setGoogleError(message);
+          throw new Error(message);
         } finally {
           setGoogleLoading(false);
         }
       }
     }),
-    [googleError, googleLoading, loading, promptAsync, request, user]
+    [googleError, googleLoading, loading, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

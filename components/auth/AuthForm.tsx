@@ -72,8 +72,8 @@ export const AuthForm = ({
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
               mode="outlined"
-              label="Name"
-              placeholder="Your name"
+              label="Full name"
+              placeholder="Your full name"
               autoCapitalize="words"
               value={value ?? ""}
               onBlur={onBlur}
@@ -172,7 +172,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: "rgba(30, 51, 67, 0.12)",
+    marginVertical: 20,
+    borderColor: "rgba(41, 69, 90, 0.3)",
     backgroundColor: "rgba(255, 255, 255, 0.7)",
     flexDirection: "row",
     alignItems: "center",
