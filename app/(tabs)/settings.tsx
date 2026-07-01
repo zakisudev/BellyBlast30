@@ -1,10 +1,11 @@
-import { ScrollView, StyleSheet } from "react-native";
-import { Text, useTheme as usePaperTheme } from "react-native-paper";
-import { useRef, useState } from "react";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { Text, TextInput, useTheme as usePaperTheme } from "react-native-paper";
+import { useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { GlassCard } from "@/components/ui/GlassCard";
+import { GradientButton } from "@/components/ui/GradientButton";
 import { PermissionBanner } from "@/components/common/PermissionBanner";
 import { SettingsForm } from "@/components/forms/SettingsForm";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -43,7 +44,7 @@ export default function SettingsScreen() {
 
   const { setGoal } = useHydration();
   const { showSuccess, showError, showInfo } = useAppFeedback();
-  const { signOutUser } = useAuth();
+  const { user, signOutUser, updateDisplayName, updateUserPassword, deleteAccount } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
   const { setupNotifications } = useNotifications();
   const { cameraGranted, libraryGranted, photoPermissionsChecked, requestPhotoPermissions } =
@@ -52,6 +53,13 @@ export default function SettingsScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const theme = usePaperTheme<AppTheme>();
   const [remindersLoading, setRemindersLoading] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.displayName ?? "");
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [nextPassword, setNextPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleReminderToggle = async (enabled: boolean) => {
     if (remindersLoading) {
@@ -86,6 +94,108 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleUpdateName = async () => {
+    const trimmedName = displayName.trim();
+
+    if (trimmedName.length < 2) {
+      showError("Enter a name with at least 2 characters.");
+      return;
+    }
+
+    setProfileLoading(true);
+    try {
+      await updateDisplayName(trimmedName);
+      setDisplayName(trimmedName);
+      showSuccess("Name updated.");
+    } catch (error) {
+      showError(getAuthMessage(error, "Unable to update your name."));
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!currentPassword) {
+      showError("Enter your current password first.");
+      return;
+    }
+
+    if (nextPassword.length < 6) {
+      showError("Firebase requires passwords to be at least 6 characters.");
+      return;
+    }
+
+    if (nextPassword !== confirmPassword) {
+      showError("New passwords do not match.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await updateUserPassword(currentPassword, nextPassword);
+      setCurrentPassword("");
+      setNextPassword("");
+      setConfirmPassword("");
+      showSuccess("Password updated.");
+    } catch (error) {
+      showError(getAuthMessage(error, "Unable to update your password."));
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (deleteLoading) {
+      return;
+    }
+
+    Alert.alert("Delete account?", "Are you sure you want to leave this amazing experience", [
+      {
+        text: "Stay",
+        style: "cancel"
+      },
+      {
+        text: "Continue",
+        style: "destructive",
+        onPress: () => {
+          Alert.alert(
+            "Final confirmation",
+            "This permanently deletes your Firebase account. Your sign-in access cannot be restored from this device.",
+            [
+              {
+                text: "Cancel",
+                style: "cancel"
+              },
+              {
+                text: "Delete account",
+                style: "destructive",
+                onPress: () => {
+                  void confirmDeleteAccount();
+                }
+              }
+            ]
+          );
+        }
+      }
+    ]);
+  };
+
+  const confirmDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await deleteAccount();
+      showInfo("Account deleted.");
+    } catch (error) {
+      showError(getAuthMessage(error, "Unable to delete your account."));
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setDisplayName(user?.displayName ?? "");
+  }, [user?.displayName]);
+
   useScrollToTopOnFocus(scrollRef);
   const backgroundGradient = theme.dark
     ? (["#07101A", "#0D1823", "#111B27"] as const)
@@ -100,17 +210,87 @@ export default function SettingsScreen() {
           Settings
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          Notifications, theme, goals, exports, and backups.
+          Manage your account, preferences, exports, and app access.
         </Text>
 
-        <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && styles.titleDark]}>
-          Appearance
-        </Text>
+        <SectionHeader
+          title="Account"
+          description="Keep your Firebase profile details current."
+          dark={theme.dark}
+        />
+        <GlassCard tint={theme.dark ? "#152536" : "#EAF4FF"}>
+          <View style={styles.cardContent}>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              Profile
+            </Text>
+            <Text variant="bodySmall" style={styles.helperText}>
+              Signed in as {user?.email ?? "your account"}.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Display name"
+              placeholder="Your name"
+              autoCapitalize="words"
+              value={displayName}
+              onChangeText={setDisplayName}
+            />
+            <GradientButton
+              label={profileLoading ? "Saving..." : "Save name"}
+              onPress={handleUpdateName}
+              disabled={profileLoading}
+            />
+          </View>
+        </GlassCard>
+        <GlassCard tint={theme.dark ? "#182D2A" : "#E6F7F1"}>
+          <View style={styles.cardContent}>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              Security
+            </Text>
+            <Text variant="bodySmall" style={styles.helperText}>
+              Password updates follow Firebase rules and require a recent email/password sign-in.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Current password"
+              secureTextEntry
+              autoCapitalize="none"
+              textContentType="password"
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+            />
+            <TextInput
+              mode="outlined"
+              label="New password"
+              placeholder="Minimum 6 characters"
+              secureTextEntry
+              autoCapitalize="none"
+              textContentType="newPassword"
+              value={nextPassword}
+              onChangeText={setNextPassword}
+            />
+            <TextInput
+              mode="outlined"
+              label="Confirm new password"
+              secureTextEntry
+              autoCapitalize="none"
+              textContentType="newPassword"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+            <GradientButton
+              label={passwordLoading ? "Updating..." : "Update password"}
+              onPress={handleUpdatePassword}
+              disabled={passwordLoading}
+            />
+          </View>
+        </GlassCard>
+
+        <SectionHeader
+          title="App Preferences"
+          description="Tune the experience to match your routine."
+          dark={theme.dark}
+        />
         <ThemeToggle mode={themeMode} onChange={setThemeMode} />
-
-        <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && styles.titleDark]}>
-          Preferences
-        </Text>
         <GlassCard tint={theme.dark ? "#152536" : "#EAF4FF"}>
           <SettingsForm
             settings={settings}
@@ -121,9 +301,11 @@ export default function SettingsScreen() {
           />
         </GlassCard>
 
-        <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && styles.titleDark]}>
-          Permissions
-        </Text>
+        <SectionHeader
+          title="Permissions"
+          description="Control reminders, camera, and media access."
+          dark={theme.dark}
+        />
         <PermissionBanner
           title="Daily Reminders"
           description="Allow BellyBlast to schedule protocol reminders and re-sync after timezone changes."
@@ -151,9 +333,11 @@ export default function SettingsScreen() {
           />
         ) : null}
 
-        <Text variant="titleMedium" style={[styles.sectionTitle, theme.dark && styles.titleDark]}>
-          Data & Export
-        </Text>
+        <SectionHeader
+          title="Data & Export"
+          description="Take your progress with you or create a backup."
+          dark={theme.dark}
+        />
         <PermissionBanner
           title="Export PDF"
           description="Generate a visual summary report for your progress."
@@ -174,7 +358,7 @@ export default function SettingsScreen() {
         />
         <PermissionBanner
           title="Export CSV"
-          description="Export your measurements for spreadsheet analysis."
+          description="Export your measurements for analysis."
           icon="file-delimited-outline"
           actionLabel="Export"
           tone="teal"
@@ -189,7 +373,7 @@ export default function SettingsScreen() {
         />
         <PermissionBanner
           title="Backup Data"
-          description="Create a portable JSON backup of your current profile and logs."
+          description="Create a portable backup of your current profile and logs."
           icon="cloud-upload-outline"
           actionLabel="Backup"
           tone="amber"
@@ -220,6 +404,12 @@ export default function SettingsScreen() {
             }
           }}
         />
+
+        <SectionHeader
+          title="Danger Zone"
+          description="Irreversible account and local data actions."
+          dark={theme.dark}
+        />
         <PermissionBanner
           title="Reset Progress"
           description="Clear local app data and start your 30-day protocol over."
@@ -231,20 +421,71 @@ export default function SettingsScreen() {
             showInfo(message);
           }}
         />
+
+        <View style={styles.bottomAction}>
+          <PermissionBanner
+            title="Sign Out"
+            description="Signout from this device"
+            icon="account-arrow-right-outline"
+            actionLabel="Sign out"
+            tone="amber"
+            onPress={async () => {
+              await signOutUser();
+              showInfo("Signed out.");
+            }}
+          />
+        </View>
+
         <PermissionBanner
-          title="Sign Out"
-          description="End your Firebase session on this device and return to the login screen."
-          icon="account-arrow-right-outline"
-          actionLabel="Sign out"
-          tone="amber"
-          onPress={async () => {
-            await signOutUser();
-            showInfo("Signed out.");
-          }}
+          title="Delete Account"
+          description="Permanently remove your Account"
+          icon="account-remove-outline"
+          actionLabel={deleteLoading ? "Deleting..." : "Delete account"}
+          tone="danger"
+          onPress={handleDeleteAccount}
         />
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function SectionHeader({
+  title,
+  description,
+  dark
+}: {
+  title: string;
+  description: string;
+  dark: boolean;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text variant="titleMedium" style={[styles.sectionTitle, dark && styles.titleDark]}>
+        {title}
+      </Text>
+      <Text variant="bodySmall" style={styles.sectionDescription}>
+        {description}
+      </Text>
+    </View>
+  );
+}
+
+function getAuthMessage(error: unknown, fallback: string) {
+  const code = (error as { code?: string }).code;
+
+  switch (code) {
+    case "auth/requires-recent-login":
+      return "Firebase requires a recent sign-in for this action. Sign out, sign back in, and try again.";
+    case "auth/wrong-password":
+    case "auth/invalid-credential":
+      return "The current password is incorrect.";
+    case "auth/weak-password":
+      return "Firebase requires passwords to be at least 6 characters.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    default:
+      return error instanceof Error ? error.message : fallback;
+  }
 }
 
 const styles = StyleSheet.create({
@@ -263,21 +504,34 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 4,
-    marginBottom: 12,
+    marginBottom: 18,
     opacity: 0.75,
     lineHeight: 20
   },
-  heroLabel: {
-    opacity: 0.72,
-    textTransform: "uppercase",
-    letterSpacing: 0.35
-  },
-  heroTitle: {
-    marginTop: 4,
-    fontWeight: "800"
+  sectionHeader: {
+    marginTop: 16,
+    marginBottom: 8,
+    gap: 3
   },
   sectionTitle: {
-    marginBottom: 8,
-    marginTop: 10
+    fontWeight: "800"
+  },
+  sectionDescription: {
+    opacity: 0.68,
+    lineHeight: 18
+  },
+  cardContent: {
+    gap: 10
+  },
+  cardTitle: {
+    fontWeight: "800"
+  },
+  helperText: {
+    opacity: 0.72,
+    lineHeight: 18,
+    marginBottom: 2
+  },
+  bottomAction: {
+    marginTop: 16
   }
 });

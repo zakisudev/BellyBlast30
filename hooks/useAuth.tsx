@@ -1,12 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  deleteUser,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile,
   type User
 } from "firebase/auth";
@@ -37,6 +41,9 @@ interface AuthContextValue {
   googleError: string | null;
   signInWithEmail: (email: string, password: string) => Promise<User>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<User>;
+  updateDisplayName: (displayName: string) => Promise<void>;
+  updateUserPassword: (currentPassword: string, nextPassword: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   signOutUser: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
 }
@@ -90,6 +97,46 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
         setUser(credential.user);
         return credential.user;
+      },
+      updateDisplayName: async (displayName) => {
+        if (!auth.currentUser) {
+          throw new Error("You must be signed in to update your name.");
+        }
+
+        await updateProfile(auth.currentUser, { displayName: displayName.trim() });
+        setUser(auth.currentUser);
+      },
+      updateUserPassword: async (currentPassword, nextPassword) => {
+        const currentUser = auth.currentUser;
+
+        if (!currentUser?.email) {
+          throw new Error("Password changes are only available for email accounts.");
+        }
+
+        const usesPassword = currentUser.providerData.some(
+          (provider) => provider.providerId === "password"
+        );
+
+        if (!usesPassword) {
+          throw new Error("This account signs in with a provider. Manage its password there.");
+        }
+
+        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updatePassword(currentUser, nextPassword);
+      },
+      deleteAccount: async () => {
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) {
+          throw new Error("You must be signed in to delete your account.");
+        }
+
+        await deleteUser(currentUser);
+        if (Platform.OS !== "web") {
+          await GoogleSignin.signOut().catch(() => undefined);
+        }
+        setUser(null);
       },
       signOutUser: async () => {
         if (Platform.OS !== "web") {

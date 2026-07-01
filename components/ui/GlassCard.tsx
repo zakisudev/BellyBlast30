@@ -7,9 +7,10 @@ import type { AppTheme } from "@/theme/paper";
 interface GlassCardProps extends PropsWithChildren {
   padding?: number;
   tint?: string;
+  borderColor?: string;
 }
 
-export const GlassCard = ({ children, padding = 16, tint }: GlassCardProps) => {
+export const GlassCard = ({ children, padding = 16, tint, borderColor }: GlassCardProps) => {
   const theme = useTheme<AppTheme>();
 
   return (
@@ -18,7 +19,7 @@ export const GlassCard = ({ children, padding = 16, tint }: GlassCardProps) => {
         styles.card,
         {
           backgroundColor: tint ?? `${theme.colors.surface}D9`,
-          borderColor: `${theme.colors.onSurface}1A`,
+          borderColor: borderColor ?? `${theme.colors.onSurface}1A`,
           padding
         }
       ]}

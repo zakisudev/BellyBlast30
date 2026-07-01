@@ -9,16 +9,29 @@ interface GradientButtonProps {
   disabled?: boolean;
   showLoadingOnPress?: boolean;
   minLoadingMs?: number;
+  variant?: "default" | "danger";
 }
 
 const wait = (ms: number) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, ms));
+
+const variantStyles = {
+  default: {
+    colors: ["#11897C", "#30B8A6", "#2E8EE1"] as const,
+    shadowColor: "#0F5B66"
+  },
+  danger: {
+    colors: ["#9E2A3F", "#C43A52", "#B64057"] as const,
+    shadowColor: "#6B1A2A"
+  }
+} as const;
 
 export const GradientButton = ({
   label,
   onPress,
   disabled = false,
   showLoadingOnPress = true,
-  minLoadingMs = 350
+  minLoadingMs = 350,
+  variant = "default"
 }: GradientButtonProps) => {
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +67,7 @@ export const GradientButton = ({
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.button,
+        { shadowColor: variantStyles[variant].shadowColor },
         pressed && !loading && styles.pressed,
         (disabled || loading) && styles.disabled
       ]}
@@ -61,7 +75,7 @@ export const GradientButton = ({
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       <LinearGradient
-        colors={["#11897C", "#30B8A6", "#2E8EE1"]}
+        colors={variantStyles[variant].colors}
         start={[0, 0]}
         end={[1, 1]}
         style={styles.gradient}
@@ -82,7 +96,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     marginTop: 5,
-    shadowColor: "#0F5B66",
     shadowOpacity: 0.24,
     shadowRadius: 10,
     shadowOffset: {

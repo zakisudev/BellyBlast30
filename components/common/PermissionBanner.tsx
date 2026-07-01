@@ -11,7 +11,7 @@ interface PermissionBannerProps {
   onPress?: () => void | Promise<void>;
   actionLabel?: string;
   icon?: string;
-  tone?: "teal" | "blue" | "amber";
+  tone?: "teal" | "blue" | "amber" | "danger";
   switchValue?: boolean;
   onToggleSwitch?: (value: boolean) => void | Promise<void>;
   switchLoading?: boolean;
@@ -29,6 +29,10 @@ const toneTints = {
   amber: {
     light: "#FCEFD7",
     dark: "#382C1C"
+  },
+  danger: {
+    light: "#FDE8EC",
+    dark: "#3A1A22"
   }
 } as const;
 
@@ -45,10 +49,16 @@ export const PermissionBanner = ({
 }: PermissionBannerProps) => {
   const theme = useTheme<AppTheme>();
   const tint = theme.dark ? toneTints[tone].dark : toneTints[tone].light;
+  const cardBorderColor =
+    tone === "danger"
+      ? theme.dark
+        ? "rgba(255, 129, 149, 0.42)"
+        : "rgba(182, 64, 87, 0.35)"
+      : undefined;
   const showsSwitch = typeof switchValue === "boolean" && typeof onToggleSwitch === "function";
 
   return (
-    <GlassCard tint={tint}>
+    <GlassCard tint={tint} borderColor={cardBorderColor}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <View style={styles.titleRow}>
@@ -76,7 +86,13 @@ export const PermissionBanner = ({
         <Text variant="bodyMedium" style={styles.subtitle}>
           {description}
         </Text>
-        {!showsSwitch && onPress ? <GradientButton label={actionLabel} onPress={onPress} /> : null}
+        {!showsSwitch && onPress ? (
+          <GradientButton
+            label={actionLabel}
+            onPress={onPress}
+            variant={tone === "danger" ? "danger" : "default"}
+          />
+        ) : null}
       </View>
     </GlassCard>
   );
