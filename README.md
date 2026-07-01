@@ -13,6 +13,7 @@ It helps users complete daily fat-loss routine tasks, track hydration and body m
   - Clear active and inactive icon contrast
 - Refined home, progress, calendar, analytics, and settings visual hierarchy.
 - Added richer settings cards for permissions, export, backup, and reset actions.
+- Added Firebase login, signup, Google OAuth, and sign-out flows.
 - Metric-first body measurements:
   - Weight in kg
   - Waist in cm
@@ -186,6 +187,26 @@ Use Expo-managed install to align package versions:
 ```bash
 npx expo install <package-name>
 ```
+
+### Firebase auth setup
+
+Set these Expo public environment variables before running the app:
+
+- EXPO_PUBLIC_FIREBASE_API_KEY
+- EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+- EXPO_PUBLIC_FIREBASE_PROJECT_ID
+- EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+- EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+- EXPO_PUBLIC_FIREBASE_APP_ID
+- EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+
+If you want native OAuth client IDs as well, add:
+
+- EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID
+- EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+- EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
+
+The Google provider must be enabled in Firebase Authentication, and the web client ID should match the OAuth client tied to that Firebase project.
 
 ## Documentation
 
