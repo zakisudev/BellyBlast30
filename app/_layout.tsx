@@ -1,7 +1,8 @@
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text, useTheme } from "react-native-paper";
 
 import { GlobalFeedbackSnackbar } from "@/components/common/GlobalFeedbackSnackbar";
+import { ONBOARDING_COMPLETED_KEY, isOnboardingCompletedInSession } from "@/constants/onboarding";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useNotificationBootstrap } from "@/hooks/useNotificationBootstrap";
 import { AppThemeProvider } from "@/theme/ThemeProvider";
@@ -38,9 +40,34 @@ function RootNavigator() {
   const router = useRouter();
   const segments = useSegments();
   const { user, loading } = useAuth();
+  const [onboardingStatus, setOnboardingStatus] = useState<"checking" | "pending" | "complete">(
+    "checking"
+  );
 
   useEffect(() => {
-    if (loading) {
+    let mounted = true;
+
+    AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY)
+      .then((value) => {
+        if (mounted) {
+          setOnboardingStatus(
+            value === "true" || isOnboardingCompletedInSession() ? "complete" : "pending"
+          );
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setOnboardingStatus(isOnboardingCompletedInSession() ? "complete" : "pending");
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loading || onboardingStatus === "checking") {
       return;
     }
 
@@ -52,24 +79,53 @@ function RootNavigator() {
       firstSegment === "signup" ||
       secondSegment === "login" ||
       secondSegment === "signup";
+    const inOnboarding = firstSegment === "onboarding";
+
+    if (!user && onboardingStatus === "pending") {
+      if (inOnboarding) {
+        return;
+      }
+
+      AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY)
+        .then((value) => {
+          if (value === "true" || isOnboardingCompletedInSession()) {
+            setOnboardingStatus("complete");
+            router.replace("/login" as never);
+            return;
+          }
+
+          router.replace("/onboarding" as never);
+        })
+        .catch(() => {
+          if (isOnboardingCompletedInSession()) {
+            setOnboardingStatus("complete");
+            router.replace("/login" as never);
+            return;
+          }
+
+          router.replace("/onboarding" as never);
+        });
+      return;
+    }
 
     if (!user && !inAuthGroup) {
       router.replace("/login" as never);
       return;
     }
 
-    if (user && inAuthGroup) {
+    if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)" as never);
     }
-  }, [loading, router, segments, user]);
+  }, [loading, onboardingStatus, router, segments, user]);
 
-  if (loading) {
+  if (loading || onboardingStatus === "checking") {
     return <BootScreen />;
   }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="onboarding" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="+not-found" options={{ headerShown: true, title: "Not Found" }} />
