@@ -16,8 +16,8 @@ export default function SignupScreen() {
   return (
     <AuthLayout
       eyebrow="Get started"
-      title="Create your account in a few taps."
-      subtitle="Pick email signup or use the Google account already linked to Firebase auth."
+      title="Create your account in few taps."
+      subtitle="Pick email signup or use your Google account."
     >
       <AuthForm
         mode="signup"
@@ -30,7 +30,7 @@ export default function SignupScreen() {
           setLoading(true);
           try {
             await signUpWithEmail(email, password, name);
-            router.replace("/(tabs)");
+            router.replace("/(tabs)" as never);
           } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : "Unable to create account.");
           } finally {

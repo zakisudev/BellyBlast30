@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PermissionBanner } from "@/components/common/PermissionBanner";
 import { SettingsForm } from "@/components/forms/SettingsForm";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 import { useHydration } from "@/hooks/useHydration";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -42,6 +43,7 @@ export default function SettingsScreen() {
 
   const { setGoal } = useHydration();
   const { showSuccess, showError, showInfo } = useAppFeedback();
+  const { signOutUser } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
   const { setupNotifications } = useNotifications();
   const { cameraGranted, libraryGranted, photoPermissionsChecked, requestPhotoPermissions } =
@@ -227,6 +229,17 @@ export default function SettingsScreen() {
           onPress={async () => {
             const message = await clearAppStorage();
             showInfo(message);
+          }}
+        />
+        <PermissionBanner
+          title="Sign Out"
+          description="End your Firebase session on this device and return to the login screen."
+          icon="account-arrow-right-outline"
+          actionLabel="Sign out"
+          tone="amber"
+          onPress={async () => {
+            await signOutUser();
+            showInfo("Signed out.");
           }}
         />
       </ScrollView>

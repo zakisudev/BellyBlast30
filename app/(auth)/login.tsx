@@ -17,7 +17,7 @@ export default function LoginScreen() {
     <AuthLayout
       eyebrow="Welcome back"
       title="Sign in to keep your streak alive."
-      subtitle="Use email and password, or jump in with the Google account already connected to Firebase."
+      subtitle="Stay ahead of the pack with your consistency"
     >
       <AuthForm
         mode="login"
@@ -29,9 +29,8 @@ export default function LoginScreen() {
           setErrorMessage(null);
           setLoading(true);
           try {
-            const ll = await signInWithEmail(email, password);
-            console.log("ll", ll);
-            router.replace("/(tabs)");
+            await signInWithEmail(email, password);
+            router.replace("/(tabs)" as never);
           } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : "Unable to sign in.");
           } finally {
