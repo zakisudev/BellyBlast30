@@ -19,16 +19,9 @@ import { Platform } from "react-native";
 
 import { auth } from "@/services/firebase";
 
-const env =
-  (
-    globalThis as typeof globalThis & {
-      process?: { env?: Record<string, string | undefined> };
-    }
-  ).process?.env ?? {};
-
 const googleClientIds = {
-  web: env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  ios: env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+  web: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  ios: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
 };
 
 const hasNativeGoogleConfig = Platform.OS !== "web" && Boolean(googleClientIds.web);
